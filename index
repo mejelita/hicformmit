@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="keywords" content="HTML,CSS,JavaScript,PHP">
+  	<meta name="description" content="Leaflet JS with spreadsheet point marker">
+	
+    <title>WebGIS HIC</title>
+    <link rel="shortcut icon" type="image/x-icon" href="assets/marker/logo.png" />
+       <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+    <style>
+      html, body, #map {
+        height: 100%;
+        width: 100%;
+        margin: 0px;
+      }
+      .blinking{
+            animation:blinkingText 0.8s infinite;
+        }
+        @keyframes blinkingText{
+            0%{     color: #000;    }
+            49%{    color: transparent; }
+            50%{    color: transparent; }
+            99%{    color:transparent;  }
+            100%{   color: #000;    }
+        }
+		<style>
+	  html, body, #map {
+        height: 100%;
+        width: 100%;
+        margin: 0px;
+      }
+			table {
+		   font-family: arial, sans-serif;
+		   font-size: 10;
+		   border-collapse: collapse;
+		}
+
+		td, th {
+		   border: 1px solid #dddddd;
+		   text-align: left;
+		   padding: 2px;
+		}
+
+		tr:nth-child(even) {
+		   background-color: #eeeeee;
+		} 
+      #subtitle {
+        font-size: 10px;
+      }
+	   .info {
+		   padding: 6px 8px;
+		   font: 14px/16px Arial, Helvetica, sans-serif;
+		   background: white;
+		   background: rgba(255,255,255,0.8);
+		   box-shadow: 0 0 15px rgba(0,0,0,0.2);
+		   border-radius: 5px;
+		}
+		.info h2 {
+		   margin: 0 0 5px;
+		   color: #777;
+		} 
+	</style> 
+    </style>
+  </head>
+
+  <body>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+    
+    <div class="modal fade" id="featureModal" tabindex="-1" role="dialog">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button class="close" type="button" data-dismiss="modal" aria-hidden="true">×</button>
+            <h4 class="modal-title text-primary" id="feature-title"></h4>
+          </div>
+          <div class="modal-body" id="feature-info"></div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-primary" data-dismiss="modal">Tutup</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+	
+    <div id="map"></div>
+    <script>
+     var map = L.map('map').setView([23.657306, 120.938296],8);
+     var googleFormUrl = 'https://docs.google.com/forms/d/e/1FAIpQLSfQD226bY2TzVWS5167Q3hCf3r-zsXIMla9lb4K537Kk1Tm9A/viewform';
+     var spreadsheetsViewUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRh6jk0b1a1P8vrFJRnsUAxdXS5N-_V757BamUDenW8KmHTiwS7O5N4HSp1WAQOuy5JWvPLXkpMT2cs/pub?gid=2021615297'
+     var _attributionGoogleForm = '<a href="' + googleFormUrl + '" target="_blank">Klik untuk menambahkan Kota/Distrik</a>';
+
+		var title = new L.Control();
+		title.onAdd = function (map) {
+		   this._div = L.DomUtil.create('div', 'info');
+		   this.update();
+		   return this._div;
+		};
+		title.update = function () {
+		   this._div.innerHTML = '<h2><a href="https://msha.ke/halalinformationcenter/" target="_blank"> HIC</a></h2>Halal Information Center'
+		};
+		title.addTo(map);  
+		
+      var _attributionGoogleSpreadsheetView = '<a href="' + spreadsheetsViewUrl + '" target="_blank">FORMMIT15</a>'
+      var basemap0 = L.tileLayer('https://{s}.google.com/vt/lyrs=p&x={x}&y={y}&z={z}', {
+        maxZoom: 20,
+        subdomains:['mt0','mt1','mt2','mt3'],
+        attribution: 'Google Terrain | ' + _attributionGoogleForm + ' | ' + _attributionGoogleSpreadsheetView
+      });
+      var basemap1 = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+        maxZoom: 20,
+        subdomains:['mt0','mt1','mt2','mt3'],
+        attribution: 'Google Satellite | ' + _attributionGoogleForm + ' | ' + _attributionGoogleSpreadsheetView
+      });
+      basemap0.addTo(map); 
+      var traffic = L.tileLayer('https://{s}.google.com/vt?lyrs=h@159000000,traffic|seconds_into_week:-1&style=3&x={x}&y={y}&z={z}', {
+        maxZoom: 20,
+        subdomains:['mt0','mt1','mt2','mt3'],
+      });
+      traffic.addTo(map);
+     
+	  
+        var point = L.geoJson(null, {
+          pointToLayer: function (feature, latlng) {
+            return L.marker(latlng, {
+              icon: L.icon({
+                iconUrl: "assets/marker/redmarkerpeople48.png", 
+                iconSize: [48, 48], 
+                iconAnchor: [24, 48], 
+                popupAnchor: [0, -48], 
+							
+              })
+            });
+          },
+		
+          onEachFeature: function (feature, layer) {
+            if (feature.properties) {
+            
+              var content = "<table class='table table-striped table-bordered table-condensed'>" + 
+				"<tr><th>Kota</th><td>" + feature.properties.nama + "</td></tr>" +
+				"<tr><th>Kategori</th><td>" + feature.properties.kategori + "</td></tr>" +
+				"<tr><th>Deskripsi</th><td>" + feature.properties.deskripsi + "</td></tr>" +
+                "<tr><th>Keterangan</th><td>" + feature.properties.keterangan + "</td></tr>" +
+                "<tr><th>Foto</th><td><img src='" + feature.properties.foto + "' width='200' alt='Tidak ada'/></td></tr>" +
+                "<tr><th>Kontributor</th><td>" + feature.properties.kontributor + "</td></tr>" +
+				"<a href='https://www.google.com/maps/dir/?api=1&destination=" + feature.geometry.coordinates[1] + "," + feature.geometry.coordinates[0] + "&travelmode=driving' target='_blank' class='btn btn-info' title='Klik untuk menuju lokasi'>Rute dari lokasi Anda</a>";
+				"</table>";
+              layer.on({
+                  click: function (e) {
+                    $("#feature-title").html(feature.properties.kategori);
+                    $("#feature-info").html(content);
+                    $("#featureModal").modal("show");
+                  }
+                });
+            }
+          }
+        });
+		
+        $.getJSON("data/spreadsheetpoint.php", function (data) {
+          point.addData(data);
+          map.addLayer(point); 
+          //map.fitBounds(point.getBounds());
+        });
+     
+
+        var baseMaps = {
+          'Google Terrain': basemap0,
+          'Google Satellite': basemap1,
+        };
+        var Layers = {
+		  'Masjid': point,
+		  'Musholla': point,
+		  'Katering': point,
+		  'Makanan Halal': point,
+          'Traffic': traffic
+		  
+        }
+        var layerControl = L.control.layers(baseMaps, Layers, {collapsed:true});
+        layerControl.addTo(map);
+ 
+	L.Control.Watermark = L.Control.extend({
+	   onAdd: function(map) {
+		  var img = L.DomUtil.create('img');
+		  img.src = 'assets/marker/f3.PNG';
+		  img.style.width = '100px';
+		  return img;
+	   },
+	   onRemove: function(map) {
+		  
+	   }
+	});
+	L.control.watermark = function(opts) {
+	   return new L.Control.Watermark(opts);
+	}
+	L.control.watermark({ position: 'bottomleft' }).addTo(map);
+	
+	 
+	L.Control.Watermark = L.Control.extend({
+	   onAdd: function(map) {
+		  var img = L.DomUtil.create('img');
+		  img.src = 'assets/marker/f2.PNG';
+		  img.style.width = '50px';
+		  return img;
+	   },
+	   onRemove: function(map) {
+		  
+	   }
+	});
+	L.control.watermark = function(opts) {
+	   return new L.Control.Watermark(opts);
+	}
+	L.control.watermark({ position: 'bottomleft' }).addTo(map);
+	 
+	L.Control.Watermark = L.Control.extend({
+	   onAdd: function(map) {
+		  var img = L.DomUtil.create('img');
+		  img.src = 'assets/marker/f1.PNG';
+		  img.style.width = '50px';
+		  return img;
+	   },
+	   onRemove: function(map) {
+		  
+	   }
+	});
+	L.control.watermark = function(opts) {
+	   return new L.Control.Watermark(opts);
+	}
+	L.control.watermark({ position: 'bottomleft' }).addTo(map);
+    </script>
+  </body>
+</html>
